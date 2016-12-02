@@ -1,0 +1,38 @@
+Protected Sub GetRetailerFileData(retailerFileName As String)
+        Dim columns As String() = Nothing
+        _dtSOA = New DataTable
+        Dim lines = File.ReadAllLines(retailerFileName)
+        If lines.Count() > 0 Then
+            columns = lines(0).Split(New Char() {"|"c})
+            For Each column As String In columns
+                _dtSOA.Columns.Add(column)
+            Next
+            _dtSOA.Columns.Add("StateId")
+            _dtSOA.Columns.Add("MailingStateId")
+            _dtSOA.Columns.Add("DPSM_Key")
+            _dtSOA.Columns.Add("DSM_Key")
+            _dtSOA.Columns.Add("FSE_Key")
+        End If
+        Console.WriteLine("Pulling data from SOA file started at: " & DateTime.Now)
+        'Reading data from SOA file
+        For i As Integer = 1 To lines.Count() - 1
+            Dim dr As DataRow = _dtSOA.NewRow()
+            Dim values As String() = lines(i).Split(New Char() {"|"c})
+            If values.Count <> SOAColumnCount Then
+                Throw New ApplicationException("Number of columns should match " & SOAColumnCount.ToString & ".Please verify the line #: " & i.ToString)
+            Else
+                Dim j As Integer = 0
+                While j < values.Count() AndAlso j < columns.Count()
+                    dr(j) = values(j)
+                    j += 1
+                End While
+                dr("StateId") = GetMethods.GetStateIdFromStateCode(dr(SOAFileLayout.STATE).ToString())
+                dr("MailingStateId") = GetMethods.GetStateIdFromStateCode(dr(SOAFileLayout.MAIL_STATE).ToString())
+                dr("DPSM_Key") = GetDPSM_KeyFromSOA(dr)
+                dr("DSM_Key") = GetDSM_KeyFromSOA(dr)
+                dr("FSE_Key") = GetFSE_KeyFromSOA(dr)
+                _dtSOA.Rows.Add(dr)
+            End If
+        Next
+        Console.WriteLine("Pulling data from SOA file ended at: " & DateTime.Now)
+    End Sub
